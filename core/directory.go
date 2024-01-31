@@ -503,6 +503,45 @@ func (dir *Directory) WithFile(
 	return dir, nil
 }
 
+func (dir *Directory) WithFiles(
+	ctx context.Context,
+	destDir string,
+	src []*File,
+	permissions *int,
+	owner *Ownership,
+) (*Directory, error) {
+	dir = dir.Clone()
+
+	for _, file := range src {
+		destSt, err := dir.State()
+		if err != nil {
+			return nil, err
+		}
+
+		srcSt, err := file.State()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := dir.SetState(ctx, mergeStates(mergeStateInput{
+			Dest:         destSt,
+			DestDir:      path.Join(dir.Dir, destDir),
+			DestFileName: path.Base(file.File),
+			Src:          srcSt,
+			SrcDir:       path.Dir(file.File),
+			SrcFileName:  path.Base(file.File),
+			Permissions:  permissions,
+			Owner:        owner,
+		})); err != nil {
+			return nil, err
+		}
+
+		dir.Services.Merge(file.Services)
+	}
+
+	return dir, nil
+}
+
 type mergeStateInput struct {
 	Dest         llb.State
 	DestDir      string
