@@ -401,54 +401,56 @@ func TestDirectoryWithFiles(t *testing.T) {
 	t.Parallel()
 	c, ctx := connect(t)
 
-	file := c.Directory().
-		WithNewFile("some-file", "some-content").
-		WithNewFile("some-other-file", "some-other-content").
-		File("some-file")
+	file1 := c.Directory().
+		WithNewFile("first-file", "file1 content").
+		File("first-file")
+	file2 := c.Directory().
+		WithNewFile("second-file", "file2 content").
+		File("second-file")
+	files := []*dagger.File{file1, file2}
+	dir := c.Directory().
+		WithFiles("/", files)
 
-	dirWithFile := c.Directory().WithFile("target-file", file)
-	content, err := dirWithFile.
-		File("target-file").Contents(ctx)
+	// check file1 contents
+	content, err := dir.File("/first-file").Contents(ctx)
+	require.Equal(t, "file1 content", content)
 	require.NoError(t, err)
-	require.Equal(t, "some-content", content)
-	_, err = dirWithFile.File("some-other-file").Contents(ctx)
+
+	// check file2 contents
+	content, err = dir.File("/second-file").Contents(ctx)
+	require.Equal(t, "file2 content", content)
+	require.NoError(t, err)
+
+	_, err = dir.File("/some-other-file").Contents(ctx)
 	require.Error(t, err)
 
-	// Same as above, but use the same name for the file rather than changing it.
-	// Needed for testing merge-op corner cases.
-	dirWithFile = c.Directory().WithFile("some-file", file)
-	content, err = dirWithFile.
-		File("some-file").Contents(ctx)
+	// test sub directory
+	subDir := c.Directory().
+		WithFiles("/a/b/c", files)
+	content, err = subDir.File("/a/b/c/first-file").Contents(ctx)
+	require.Equal(t, "file1 content", content)
 	require.NoError(t, err)
-	require.Equal(t, "some-content", content)
-	_, err = dirWithFile.File("some-other-file").Contents(ctx)
-	require.Error(t, err)
-
-	content, err = c.Directory().
-		WithFile("sub-dir/target-file", file).
-		File("sub-dir/target-file").Contents(ctx)
-	require.NoError(t, err)
-	require.Equal(t, "some-content", content)
 
 	t.Run("respects permissions", func(t *testing.T) {
+
+		file1 := c.Directory().
+			WithNewFile("file-set-permissions", "this should have rwxrwxrwx permissions", dagger.DirectoryWithNewFileOpts{Permissions: 0o777}).
+			File("file-set-permissions")
+		file2 := c.Directory().
+			WithNewFile("file-default-permissions", "this should have rw-r--r-- permissions").
+			File("file-default-permissions")
+		files := []*dagger.File{file1, file2}
 		dir := c.Directory().
-			WithNewFile(
-				"file-with-permissions",
-				"this should have rwxrwxrwx permissions",
-				dagger.DirectoryWithNewFileOpts{Permissions: 0o777})
+			WithFiles("/", files)
 
 		ctr := c.Container().From("alpine").WithDirectory("/permissions-test", dir)
 
-		stdout, err := ctr.WithExec([]string{"ls", "-l", "/permissions-test/file-with-permissions"}).Stdout(ctx)
+		stdout, err := ctr.WithExec([]string{"ls", "-l", "/permissions-test/file-set-permissions"}).Stdout(ctx)
 		require.NoError(t, err)
 		require.Contains(t, stdout, "rwxrwxrwx")
 
-		dir2 := c.Directory().
-			WithNewFile(
-				"file-with-permissions",
-				"this should have rw-r--r-- permissions")
-		ctr2 := c.Container().From("alpine").WithDirectory("/permissions-test", dir2)
-		stdout2, err := ctr2.WithExec([]string{"ls", "-l", "/permissions-test/file-with-permissions"}).Stdout(ctx)
+		ctr2 := c.Container().From("alpine").WithDirectory("/permissions-test", dir)
+		stdout2, err := ctr2.WithExec([]string{"ls", "-l", "/permissions-test/file-default-permissions"}).Stdout(ctx)
 		require.NoError(t, err)
 		require.Contains(t, stdout2, "rw-r--r--")
 	})
