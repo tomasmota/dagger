@@ -219,7 +219,7 @@ func (s *directorySchema) withFile(ctx context.Context, parent *core.Directory, 
 
 type WithFilesArgs struct {
 	Path        string
-	Files   []core.FileID
+	Files       []core.FileID
 	Permissions *int
 }
 

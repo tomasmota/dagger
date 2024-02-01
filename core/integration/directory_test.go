@@ -432,7 +432,6 @@ func TestDirectoryWithFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("respects permissions", func(t *testing.T) {
-
 		file1 := c.Directory().
 			WithNewFile("file-set-permissions", "this should have rwxrwxrwx permissions", dagger.DirectoryWithNewFileOpts{Permissions: 0o777}).
 			File("file-set-permissions")
@@ -449,7 +448,7 @@ func TestDirectoryWithFiles(t *testing.T) {
 		require.NoError(t, err)
 		require.Contains(t, stdout, "rwxrwxrwx")
 
-		ctr2 := c.Container().From("alpine").WithDirectory("/permissions-test", dir)
+		ctr2 := c.Container().From("alpine").WithDirectory("/permissions-test", dir2)
 		stdout2, err := ctr2.WithExec([]string{"ls", "-l", "/permissions-test/file-default-permissions"}).Stdout(ctx)
 		require.NoError(t, err)
 		require.Contains(t, stdout2, "rw-r--r--")

@@ -248,7 +248,7 @@ func (s *containerSchema) Install() {
 		dagql.Func("withFiles", s.withFiles).
 			Doc(`Retrieves this container plus the contents of the given files copied to the given path.`).
 			ArgDoc("path", `Location where copied files should be placed (e.g., "/src").`).
-			ArgDoc("files", `Identifier of the files to copy.`).
+			ArgDoc("files", `Identifiers of the files to copy.`).
 			ArgDoc("permissions", `Permission given to the copied files (e.g., 0600).`).
 			ArgDoc("owner",
 				`A user:group to set for the files.`,

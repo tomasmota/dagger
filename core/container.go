@@ -506,7 +506,6 @@ func (container *Container) WithFiles(ctx context.Context, destDir string, src [
 	})
 }
 
-
 func (container *Container) WithNewFile(ctx context.Context, dest string, content []byte, permissions fs.FileMode, owner string) (*Container, error) {
 	container = container.Clone()
 
